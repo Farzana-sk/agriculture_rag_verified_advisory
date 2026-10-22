@@ -1,0 +1,150 @@
+:root {
+  font-family: "Segoe UI", sans-serif;
+  color: #14261c;
+  background: #eef5ee;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, #d9f0d4, transparent 28%),
+    #eef5ee;
+}
+
+.page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+header h1 {
+  margin: 8px 0;
+  font-size: 2rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #2f6b3f;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.lede {
+  color: #405248;
+  line-height: 1.5;
+}
+
+.card {
+  background: white;
+  border: 1px solid #d7e4d8;
+  border-radius: 18px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 10px 30px rgba(20, 38, 28, 0.06);
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin: 12px 0 6px;
+}
+
+textarea,
+select {
+  width: 100%;
+  border: 1px solid #c5d4c7;
+  border-radius: 12px;
+  padding: 12px;
+  font: inherit;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: #1f7a4d;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #215c8c;
+}
+
+button.danger {
+  background: #b42318;
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.error {
+  color: #b42318;
+}
+
+.result-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.badge {
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 700;
+}
+
+.badge.pass {
+  background: #d9f0d4;
+  color: #1f7a4d;
+}
+
+.badge.reject {
+  background: #f8d7d4;
+  color: #b42318;
+}
+
+.meter {
+  height: 10px;
+  background: #edf3ee;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 12px 0 20px;
+}
+
+.meter-fill {
+  height: 100%;
+}
+
+.result ul,
+.history {
+  padding-left: 0;
+  list-style: none;
+}
+
+.result li,
+.history li {
+  border-top: 1px solid #edf3ee;
+  padding: 12px 0;
+}
+
+.history p,
+.result p {
+  margin: 6px 0 0;
+  line-height: 1.45;
+}

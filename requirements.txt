@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+python-dotenv
+groq
+langchain
+langchain-community
+chromadb
+sentence-transformers
+pypdf
+scikit-learn
+pandas
+sounddevice
+scipy
+gTTS
+langdetect
+python-multipart
+pydantic

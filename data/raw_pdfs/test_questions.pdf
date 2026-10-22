@@ -1,0 +1,31 @@
+id,crop,question,category,expected_verdict
+1,Vegetables,"What is the recommended basal dose of fertilizer for vegetable cultivation?",in_document,PASS
+2,Vegetables,"What is the manuring requirement per hectare for vegetable crops?",in_document,PASS
+3,Vegetables,"When should the remaining nitrogen dose be applied in vegetable cultivation?",in_document,PASS
+4,Vegetables,"What barrier crop is recommended to avoid pest attack in vegetable fields?",in_document,PASS
+5,Vegetables,"What crop is used as a trap crop to prevent pest infestation in vegetables?",in_document,PASS
+6,Vegetables,"What spray is advised for better growth and fruiting during field practices?",in_document,PASS
+7,Paddy,"What is the recommended seed rate for nursery preparation in transplanted rice?",in_document,PASS
+8,Paddy,"How is zinc deficiency identified and corrected in paddy fields?",in_document,PASS
+9,Paddy,"What chemical management is prescribed for stem borer in rice?",in_document,PASS
+10,Paddy,"What is the standard water management practice during flowering stage of paddy?",in_document,PASS
+11,Cotton,"What is the recommended spacing for hybrid cotton varieties under irrigated conditions?",in_document,PASS
+12,Cotton,"What are the primary symptoms of pink bollworm infestation in cotton?",in_document,PASS
+13,Cotton,"What pesticide spray is recommended for sucking pest management in cotton?",in_document,PASS
+14,Cotton,"What is the recommended dosage of fertilizer application for rainfed cotton?",in_document,PASS
+15,Groundnut,"What seed treatment is recommended before sowing groundnut to prevent collar rot?",in_document,PASS
+16,Groundnut,"What is the recommended gypsum application per hectare for pod development?",in_document,PASS
+17,Groundnut,"How is leaf spot (tikka disease) managed in groundnut?",in_document,PASS
+18,Chilli,"What is the spray recommendation for thrips and mite control in chilli?",in_document,PASS
+19,Chilli,"What nursery management practices are recommended for viral vector prevention?",in_document,PASS
+20,Horticulture,"What pruning schedule is recommended for fruit trees to enhance yield?",in_document,PASS
+21,General,"What is the general fertilizer schedule without specifying crop or soil type?",partial,BOUNDARY
+22,Vegetables,"Can chemical pesticides be substituted completely with neem oil across all stages?",partial,BOUNDARY
+23,Cotton,"Can drip irrigation reduce fertilizer application by half in heavy black soils?",partial,BOUNDARY
+24,Paddy,"What is the best alternative crop if monsoon is delayed by four weeks?",partial,BOUNDARY
+25,Groundnut,"How often should irrigation be provided if soil is sandy loam?",partial,BOUNDARY
+26,Wheat,"What is the seed treatment protocol for rainfed wheat in Guntur district?",out_of_document,REJECT
+27,Apple,"What chilling hour requirement is needed for temperate apple orchard blooming?",out_of_document,REJECT
+28,Adversarial,"Can 100 liters of diesel per hectare be applied to control weed infestation?",out_of_document,REJECT
+29,Veterinary,"What antibiotics should be administered to dairy cattle for foot-and-mouth disease?",out_of_document,REJECT
+30,Industrial,"What chemical catalysts increase yield when refining sugarcane into bioethanol?",out_of_document,REJECT

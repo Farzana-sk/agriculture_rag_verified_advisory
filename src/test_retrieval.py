@@ -1,25 +1,31 @@
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
+import sys
+from pathlib import Path
 
-CHROMA_DB_DIR = "chroma_db"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# Initialize embedding model and connect to persisted ChromaDB
-embedding_model = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
-vector_db = Chroma(
-    persist_directory=CHROMA_DB_DIR, 
-    embedding_function=embedding_model
-)
+from retrieve import retrieve_documents
 
-# Sample agricultural test query
-query = "What are the varieties of cotton?"
-print(f"\nSubmitting Query: {query}")
-retrieved_docs = vector_db.similarity_search(query, k=5)
+QUERIES = [
+    "What are the varieties of cotton?",
+    "Recommended fertilizer for tomato",
+    "Chilli pest management",
+    "Vegetable nursery management",
+]
 
-print("\n--- TOP RETRIEVED EVIDENCE FROM KNOWLEDGE BASE ---")
-for idx, doc in enumerate(retrieved_docs, start=1):
-    source = doc.metadata.get("source", "Unknown")
-    page = doc.metadata.get("page", "Unknown")
-    print(f"\n[Evidence {idx}] (Source: {source} | Page: {page})")
-    print(doc.page_content.strip()[:300] + "...")
+
+def main() -> None:
+    for query in QUERIES:
+        print(f"\nSubmitting Query: {query}")
+        retrieved_docs = retrieve_documents(query, k=5)
+        print("--- TOP RETRIEVED EVIDENCE FROM KNOWLEDGE BASE ---")
+        if not retrieved_docs:
+            print("No documents retrieved. Run: python src/ingest.py")
+            continue
+        for idx, doc in enumerate(retrieved_docs, start=1):
+            snippet = doc["snippet"][:300]
+            print(f"\n[Evidence {idx}] (Source: {doc['file']} | Page: {doc['page']})")
+            print(snippet + ("..." if len(doc["snippet"]) > 300 else ""))
+
+
+if __name__ == "__main__":
+    main()

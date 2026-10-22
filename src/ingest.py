@@ -1,50 +1,84 @@
-import os
+import shutil
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-# Directory paths
-DATA_DIR = "data/raw_pdfs"
-CHROMA_DB_DIR = "chroma_db"
+from config import CHROMA_DB_DIR, RAW_PDF_DIR, ROOT_DIR, SKIP_PDF_SUBSTRINGS
+from embeddings import get_embedding_model
 
-print("--- Step 1: Loading Agricultural Manual PDFs ---")
-documents = []
 
-if not os.path.exists(DATA_DIR):
-    raise FileNotFoundError(f"Directory not found: {DATA_DIR}. Please verify the path.")
+def is_knowledge_pdf(path: Path) -> bool:
+    name = path.name.lower()
+    if not name.endswith(".pdf"):
+        return False
+    return not any(skip in name for skip in SKIP_PDF_SUBSTRINGS)
 
-# Read all PDF files from the raw_pdfs folder
-for file in os.listdir(DATA_DIR):
-    if file.endswith(".pdf"):
-        pdf_path = os.path.join(DATA_DIR, file)
+
+def collect_pdfs() -> list[Path]:
+    RAW_PDF_DIR.mkdir(parents=True, exist_ok=True)
+    pdfs = [p for p in RAW_PDF_DIR.glob("*.pdf") if is_knowledge_pdf(p)]
+
+    if pdfs:
+        return sorted(pdfs)
+
+    # Copy Package of Practices PDFs from the project root if the farmer
+    # knowledge folder is still empty.
+    copied = []
+    for path in ROOT_DIR.glob("*.pdf"):
+        if not is_knowledge_pdf(path):
+            continue
+        if not path.name.lower().startswith("pop"):
+            continue
+        destination = RAW_PDF_DIR / path.name
+        if not destination.exists():
+            shutil.copy2(path, destination)
+        copied.append(destination)
+    return sorted(copied)
+
+
+def ingest_documents() -> int:
+    pdfs = collect_pdfs()
+    if not pdfs:
+        raise FileNotFoundError(
+            f"No Package of Practices PDFs found in {RAW_PDF_DIR}. "
+            "Copy pop_HF.pdf and pop_veg_culti*.pdf into data/raw_pdfs/"
+        )
+
+    print("--- Step 1: Loading Agricultural Manual PDFs ---")
+    documents = []
+    for pdf_path in pdfs:
         print(f"Loading document: {pdf_path}")
-        loader = PyPDFLoader(pdf_path)
+        loader = PyPDFLoader(str(pdf_path))
         documents.extend(loader.load())
+    print(f"Total pages successfully loaded: {len(documents)}")
 
-print(f"Total pages successfully loaded: {len(documents)}")
+    print("\n--- Step 2: Splitting Documents into Chunks ---")
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=80,
+        separators=["\n\n", "\n", " ", ""],
+    )
+    chunks = splitter.split_documents(documents)
+    print(f"Total chunks generated: {len(chunks)}")
 
-# Step 2: Split text into manageable chunks
-print("\n--- Step 2: Splitting Documents into Chunks ---")
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,
-    chunk_overlap=50,
-    separators=["\n\n", "\n", " ", ""]
-)
+    print("\n--- Step 3: Generating Embeddings and Building ChromaDB ---")
+    persist_dir = Path(CHROMA_DB_DIR)
+    if persist_dir.exists():
+        shutil.rmtree(persist_dir)
 
-chunks = text_splitter.split_documents(documents)
-print(f"Total chunks generated: {len(chunks)}")
+    Chroma.from_documents(
+        documents=chunks,
+        embedding=get_embedding_model(),
+        persist_directory=CHROMA_DB_DIR,
+    )
+    print(f"\n[SUCCESS] Vector indexing complete. Saved to: {CHROMA_DB_DIR}/")
+    return len(chunks)
 
-# Step 3: Embed chunks and persist to ChromaDB
-print("\n--- Step 3: Generating Embeddings and Building ChromaDB ---")
-embedding_model = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
 
-vector_db = Chroma.from_documents(
-    documents=chunks,
-    embedding=embedding_model,
-    persist_directory=CHROMA_DB_DIR
-)
-
-print(f"\n[SUCCESS] Vector indexing complete. Vector database saved to: {CHROMA_DB_DIR}/")
+if __name__ == "__main__":
+    ingest_documents()
