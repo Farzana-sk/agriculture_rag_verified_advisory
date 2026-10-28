@@ -3,7 +3,10 @@ import unicodedata
 
 from groq import Groq
 
-from config import LLM_MODEL, require_groq_key
+try:
+    from .config import GROQ_API_KEY, LLM_MODEL, require_groq_key
+except ImportError:  # pragma: no cover - script execution support
+    from config import GROQ_API_KEY, LLM_MODEL, require_groq_key
 
 
 TELUGU_GLOSSARY = {
@@ -230,6 +233,15 @@ TELUGU_GLOSSARY = {
 
 
 
+def normalize_text(text: str) -> str:
+    if not text:
+        return ""
+    normalized = unicodedata.normalize("NFKC", str(text))
+    normalized = normalized.replace("\u00a0", " ").replace("\u200b", "")
+    normalized = re.sub(r"[\u2000-\u200f\u202f\u205f\u3000]", " ", normalized)
+    return normalized
+
+
 def fold_text(text: str) -> str:
     normalized = unicodedata.normalize("NFKD", text or "")
     ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
@@ -237,28 +249,21 @@ def fold_text(text: str) -> str:
 
 
 def looks_romanized_telugu(text: str) -> bool:
+    # Word-level matching. The old substring check matched "vari" inside the
+    # English word "varieties", so English questions were treated as Telugu.
     folded = fold_text(text)
-    clues = (
-        "panta",
-        "pratti",
-        "prathi",
-        "paddi",
-        "vari",
-        "rakalu",
-        "emiti",
-        "aakulu",
-        "akulu",
-        "cheyyali",
-        "cheyali",
-        "veste",
-        "kalar",
+    tokens = folded.split()
+    strong_parts = (
+        "rakalu", "rakaalu", "pratti", "prathi", "panta", "aakulu", "akulu",
+        "emiti", "cheyyali", "cheyali", "paddi", "varirak",
     )
-    return sum(clue in folded for clue in clues) >= 1 and (
-        "vari" in folded or "pratti" in folded or "panta" in folded or "rakalu" in folded
-    )
+    if any(part in folded for part in strong_parts):
+        return True
+    return any(token in {"vari", "vaari"} for token in tokens)
 
 
 def detect_language(text: str, whisper_language: str | None = None) -> str:
+    text = text or ""
     if any("\u0c00" <= ch <= "\u0c7f" for ch in text):
         return "te"
     if any("\u0900" <= ch <= "\u097f" for ch in text):
@@ -296,11 +301,40 @@ def heuristic_english_query(text: str) -> str:
     return " ".join(parts).strip()
 
 
+# English words that also appear in TELUGU_GLOSSARY; they do not prove the
+# question is romanized Telugu.
+_ENGLISH_SAFE = {
+    "rice", "paddy", "tomato", "cotton", "yellow", "yello", "colour",
+    "fungicide", "pesticide", "pesticides", "bollworm", "whitefly",
+    "aphids", "urea", "doses",
+}
+
+
+def has_romanized_telugu_words(text: str) -> bool:
+    tokens = fold_text(text).split()
+    return any(t in TELUGU_GLOSSARY and t not in _ENGLISH_SAFE for t in tokens)
+
+
+def is_plain_english(text: str) -> bool:
+    text = text or ""
+    return (
+        text.isascii()
+        and not looks_romanized_telugu(text)
+        and not has_romanized_telugu_words(text)
+    )
+
+
 def rewrite_to_english(question: str) -> str:
+    question = question or ""
+    # SPEED: plain English needs no LLM rewrite (saves one Groq call).
+    if is_plain_english(question):
+        return question.strip()
     heuristic = heuristic_english_query(question)
     folded = fold_text(question)
     if heuristic in {"recommended paddy varieties", "recommended cotton varieties"}:
         return heuristic
+    if not GROQ_API_KEY:
+        return heuristic or question
 
     client = Groq(api_key=require_groq_key(), timeout=20.0)
     prompt = f"""Rewrite this farmer question as one short English agriculture search query.
@@ -330,10 +364,24 @@ English query:"""
     return rewritten or heuristic or question
 
 
+# SPEED: False = take the first sentences of the answer (no extra LLM call).
+# Set True to restore the older LLM-written 2-sentence spoken summary.
+USE_LLM_SPOKEN_SUMMARY = False
+
+
+def first_sentences(text: str, count: int = 3, max_chars: int = 500) -> str:
+    parts = re.split(r"(?<=[.!?\u0964])\s+", (text or "").strip())
+    return " ".join(parts[:count])[:max_chars]
+
+
 def spoken_summary(text: str, language: str = "en") -> str:
     """Short, TTS-friendly line in the farmer's language."""
+    text = text or ""
     if not text.strip():
         return text
+    if not USE_LLM_SPOKEN_SUMMARY or not GROQ_API_KEY:
+        # Read the FULL answer (sentence cutting broke on '1.' and 'G. hirsutum').
+        return prepare_speech_text(text, language)
     if language == "te":
         instruction = (
             "Rewrite this as 2 short Telugu sentences for a farmer. "
@@ -365,12 +413,23 @@ def spoken_summary(text: str, language: str = "en") -> str:
 
 
 def prepare_speech_text(text: str, language: str = "en") -> str:
+    text = normalize_text(text)
+    if language == "en":
+        # English TTS can read numbers, so keep them and make symbols speakable.
+        text = re.sub(r"[\u2010-\u2015\u2212]", "-", text)
+        text = text.replace("\u00d7", " cross ").replace("%", " percent ").replace("/", " per ")
+        text = re.sub(r"(?<=\d)\s*-\s*(?=\d)", " to ", text)
+        text = text.replace("-", " ")
     cleaned = re.sub(r"[*_`#>()\[\]{}]+", " ", text or "")
     letters = []
     for ch in cleaned:
-        if ch.isdigit():
+        if ch.isdigit() and language != "en":
             continue
-        if ch.isalpha() or ch.isspace() or ch in " .,;:'-":
+        # Keep letters (L*) AND combining marks (M*). Telugu/Hindi vowel signs
+        # such as ా ి ు ్ are category M*, and isalpha() is False for them.
+        category = unicodedata.category(ch)
+        keep_digit = ch.isdigit() and language == "en"
+        if category[0] in ("L", "M") or keep_digit or ch.isspace() or ch in " .,;:'-\u0964":
             letters.append(ch)
     cleaned = re.sub(r"\s+", " ", "".join(letters)).strip(" .-")
     if language == "en":
@@ -382,11 +441,14 @@ def prepare_speech_text(text: str, language: str = "en") -> str:
         return "అధికారిక పత్రాల ప్రకారం సిఫారసు చేసిన పంట రకాలు ఇవి."
     elif language == "hi" and len(cleaned) < 12:
         return "आधिकारिक दस्तावेज के अनुसार अनुशंसित फसल किस्में ये हैं।"
-    return cleaned[:900]
+    return cleaned[:1500]
 
 
 def translate_answer(text: str, language: str) -> str:
+    text = normalize_text(text or "")
     if language not in {"te", "hi"} or not text.strip():
+        return text
+    if not GROQ_API_KEY:
         return text
     lang_name = "Telugu" if language == "te" else "Hindi"
     client = Groq(api_key=require_groq_key(), timeout=25.0)

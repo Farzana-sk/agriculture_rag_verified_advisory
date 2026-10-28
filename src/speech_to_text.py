@@ -3,7 +3,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from stt import record_and_transcribe
+try:
+    from .stt import record_and_transcribe
+except ImportError:  # pragma: no cover - script execution support
+    from stt import record_and_transcribe
 
 
 def transcribe_voice_question(duration: int = 5) -> str:

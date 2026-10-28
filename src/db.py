@@ -2,7 +2,10 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 
-from config import DATA_DIR, SQLITE_PATH
+try:
+    from .config import DATA_DIR, SQLITE_PATH
+except ImportError:  # pragma: no cover - script execution support
+    from config import DATA_DIR, SQLITE_PATH
 
 
 def get_connection() -> sqlite3.Connection:

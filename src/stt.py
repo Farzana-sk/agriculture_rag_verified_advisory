@@ -3,7 +3,10 @@ from pathlib import Path
 
 from groq import Groq
 
-from config import STT_MODEL, require_groq_key
+try:
+    from .config import GROQ_API_KEY, STT_MODEL, require_groq_key
+except ImportError:  # pragma: no cover - script execution support
+    from config import GROQ_API_KEY, STT_MODEL, require_groq_key
 
 AGRI_PROMPT = (
     "Farmer question about cotton (pratti panta), paddy, groundnut, chilli, tomato. "
@@ -16,6 +19,10 @@ def transcribe_audio_bytes(
     filename: str = "question.wav",
     language: str | None = None,
 ) -> dict:
+    if not audio_bytes:
+        return {"text": "", "language": language or "en"}
+    if not GROQ_API_KEY:
+        return {"text": "Transcription is unavailable without a Groq API key.", "language": language or "en"}
     client = Groq(api_key=require_groq_key(), timeout=60.0)
     kwargs = {
         "file": (filename, audio_bytes),

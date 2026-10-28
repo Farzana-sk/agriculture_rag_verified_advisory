@@ -2,10 +2,35 @@ import { useEffect, useRef, useState } from "react";
 
 const API = import.meta.env.VITE_API_URL || "";
 
+const LANGUAGES = {
+  auto: "Auto detect",
+  en: "English",
+  te: "తెలుగు - Telugu",
+  hi: "हिन्दी - Hindi",
+};
+
+const LANG_NAMES = { en: "English", te: "Telugu", hi: "Hindi" };
+
 function scoreColor(score) {
-  if (score >= 0.6) return "#1f7a4d";
+  if (score >= 0.6) return "#2f8a4f";
   if (score >= 0.45) return "#b7791f";
   return "#b42318";
+}
+
+// PDF tables arrive flattened ("1 Crop Cotton 2 Variety ..."). Put a comma
+// before each numbered field so the snippet is readable.
+function formatSnippet(text) {
+  return (text || "").replace(/\s(\d{1,2})\s(?=[A-Z])/g, ", $1 ").trim();
+}
+
+// Show **bold** properly and drop stray markdown asterisks.
+function renderAnswer(text) {
+  return (text || "").split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return part.replace(/\*/g, "");
+  });
 }
 
 export default function App() {
@@ -13,20 +38,25 @@ export default function App() {
   const [language, setLanguage] = useState("auto");
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const mediaRef = useRef(null);
   const chunksRef = useRef([]);
   const audioRef = useRef(null);
+  const speakToken = useRef(0);
 
   function stopSpeech() {
+    speakToken.current += 1;
     window.speechSynthesis?.cancel();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.src = "";
       audioRef.current = null;
     }
+    setSpeaking(false);
   }
 
   async function loadHistory() {
@@ -41,29 +71,41 @@ export default function App() {
 
   useEffect(() => {
     loadHistory();
+    return () => stopSpeech();
   }, []);
 
   async function speakAnswer(text, lang) {
     if (!text) return;
     stopSpeech();
+    const myToken = speakToken.current;
     const voiceLang = lang === "hi" || lang === "te" ? lang : "en";
-    const response = await fetch(`${API}/speak`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, language: voiceLang }),
-    });
-    if (!response.ok) return;
-    const blob = await response.blob();
-    const audio = new Audio(URL.createObjectURL(blob));
-    audioRef.current = audio;
-    await audio.play();
+    try {
+      setSpeaking(true);
+      const response = await fetch(`${API}/speak`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, language: voiceLang }),
+      });
+      if (!response.ok) throw new Error("Voice could not be generated.");
+      const blob = await response.blob();
+      if (myToken !== speakToken.current) return; // newer click or Stop happened
+      const audio = new Audio(URL.createObjectURL(blob));
+      audio.onended = () => setSpeaking(false);
+      audioRef.current = audio;
+      await audio.play();
+    } catch (err) {
+      setSpeaking(false);
+      setError(err.message || "Voice playback failed.");
+    }
   }
 
   async function submitText(event) {
     event.preventDefault();
     if (!question.trim()) return;
+    stopSpeech();
     setLoading(true);
     setError("");
+    setMessage("");
     try {
       const response = await fetch(`${API}/query`, {
         method: "POST",
@@ -86,7 +128,23 @@ export default function App() {
 
   async function startRecording() {
     setError("");
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    setMessage("");
+    stopSpeech();
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      setError("Audio recording is not supported in this browser. Try Chrome or Edge.");
+      return;
+    }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      setError(
+        err.name === "NotAllowedError"
+          ? "Microphone permission was denied."
+          : "Unable to access the microphone.",
+      );
+      return;
+    }
     const recorder = new MediaRecorder(stream);
     chunksRef.current = [];
     recorder.ondataavailable = (event) => {
@@ -99,15 +157,18 @@ export default function App() {
       form.append("file", blob, "farmer_question.webm");
       if (language !== "auto") form.append("language", language);
       setLoading(true);
+      setMessage("Transcribing and verifying your question...");
       try {
         const response = await fetch(`${API}/voice`, { method: "POST", body: form });
         const data = await response.json();
         if (!response.ok) throw new Error(data.detail || "Voice query failed");
         setQuestion(data.transcript || data.question);
         setResult(data);
+        setMessage("");
         loadHistory();
       } catch (err) {
         setError(err.message);
+        setMessage("");
       } finally {
         setLoading(false);
       }
@@ -122,132 +183,268 @@ export default function App() {
     setRecording(false);
   }
 
+  function clearAll() {
+    stopSpeech();
+    if (recording) stopRecording();
+    setQuestion("");
+    setResult(null);
+    setError("");
+    setMessage("");
+  }
+
+  const score = result ? Number(result.trust_score) : 0;
+  const passed = result?.verdict === "PASS";
+
   return (
-    <div className="page">
-      <header>
-        <p className="eyebrow">VVIT · AIM-C10 · Verified RAG Advisory</p>
-        <h1>Voice-Based Agricultural Advisory</h1>
-        <p className="lede">
-          Ask in Telugu, Hindi, or English. The answer is written and spoken in
-          the same language as the question. Use Auto detect, or set Telugu
-          before recording a Telugu voice question.
-        </p>
+    <div className="agri-app">
+      <header className="topbar">
+        <div className="brand">
+          <span className="brand-logo">AG</span>
+          <span>
+            <b>AgriVerify</b>
+            <small>Verified Agricultural Advisory</small>
+          </span>
+        </div>
+        <span className="online">
+          <i /> VVIT · AIM-C10
+        </span>
       </header>
 
-      <form className="card" onSubmit={submitText}>
-        <label htmlFor="language">Language</label>
-        <select
-          id="language"
-          value={language}
-          onChange={(event) => setLanguage(event.target.value)}
-        >
-          <option value="auto">Auto detect</option>
-          <option value="en">English</option>
-          <option value="hi">Hindi</option>
-          <option value="te">Telugu</option>
-        </select>
-
-        <label htmlFor="question">Farmer question</label>
-        <textarea
-          id="question"
-          rows="4"
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          placeholder="ఉదాహరణ: vari rakalu emiti?  /  What are the cotton varieties?"
-        />
-
-        <div className="actions">
-          <button type="submit" disabled={loading}>
-            {loading ? "Working (about 10-20s)..." : "Get verified answer"}
-          </button>
-          {!recording ? (
-            <button type="button" className="secondary" onClick={startRecording} disabled={loading}>
-              Record voice
-            </button>
-          ) : (
-            <button type="button" className="danger" onClick={stopRecording}>
-              Stop recording
-            </button>
-          )}
-        </div>
-        {error ? <p className="error">{error}</p> : null}
-      </form>
-
-      {result ? (
-        <section className="card result">
-          <div className="result-top">
-            <span className={`badge ${result.verdict === "PASS" ? "pass" : "reject"}`}>
-              {result.verdict}
-            </span>
-            <strong style={{ color: scoreColor(result.trust_score) }}>
-              Trust score {result.trust_score}
-            </strong>
+      <main>
+        <section className="hero">
+          <div>
+            <p className="eyebrow">VOICE-BASED · MULTILINGUAL · VERIFIED</p>
+            <h1>
+              Farming advice you can <em>trust, with proof.</em>
+            </h1>
+            <p>
+              Ask by typing or speaking in Telugu, Hindi or English. Every answer is
+              checked against official Package of Practices documents and shown with a
+              Trust Score and its sources.
+            </p>
+            <div className="hero-tags">
+              <span>Multilingual voice</span>
+              <span>Trust Score (τ ≥ 0.6)</span>
+              <span>Source citations</span>
+            </div>
           </div>
-          <div className="meter">
-            <div
-              className="meter-fill"
-              style={{
-                width: `${Math.max(4, Math.min(100, result.trust_score * 100))}%`,
-                background: scoreColor(result.trust_score),
-              }}
-            />
-          </div>
-          <h2>Verified answer</h2>
-          {result.search_query ? (
-            <p className="lede">Understood as: {result.search_query}</p>
-          ) : null}
-          <p>{result.final_answer}</p>
-          <div className="actions">
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => speakAnswer(result.speech_text || result.final_answer, result.language || "en")}
-            >
-              Play voice
-            </button>
-            <button type="button" className="danger" onClick={stopSpeech}>
-              Stop voice
-            </button>
-          </div>
-          {result.verdict === "REJECT" && result.generated_answer ? (
-            <details>
-              <summary>Hidden unverified draft</summary>
-              <p>{result.generated_answer}</p>
-            </details>
-          ) : null}
-          <h3>Supporting sources</h3>
-          <ul>
-            {(result.sources || []).slice(0, 4).map((source, index) => (
-              <li key={`${source.file}-${index}`}>
-                <strong>
-                  {source.file} · p.{source.page}
-                </strong>
-                <p>{source.snippet}</p>
-              </li>
-            ))}
-          </ul>
         </section>
-      ) : null}
 
-      <section className="card">
-        <h2>Recent queries</h2>
-        {history.length === 0 ? (
-          <p>No history yet.</p>
-        ) : (
-          <ul className="history">
-            {history.map((item) => (
-              <li key={item.id}>
+        <div className="workspace">
+          <section className="panel">
+            <div className="panel-heading">
+              <span>1</span>
+              <div>
+                <h2>Ask your question</h2>
+                <p>Type it, or record your voice.</p>
+              </div>
+            </div>
+            <form onSubmit={submitText}>
+              <label htmlFor="language">Response language</label>
+              <select
+                id="language"
+                value={language}
+                onChange={(event) => setLanguage(event.target.value)}
+                disabled={loading || recording}
+              >
+                {Object.entries(LANGUAGES).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+
+              <div className="label-row">
+                <label htmlFor="question">Your farming question</label>
+                <small>{question.length}/2000</small>
+              </div>
+              <textarea
+                id="question"
+                rows="6"
+                maxLength={2000}
+                value={question}
+                disabled={loading}
+                onChange={(event) => {
+                  setQuestion(event.target.value);
+                  setError("");
+                }}
+                placeholder="What are the cotton varieties?  /  vari rakalu emiti?"
+              />
+
+              {!recording ? (
+                <button type="button" className="mic-button" onClick={startRecording} disabled={loading}>
+                  Record voice question
+                </button>
+              ) : (
+                <button type="button" className="mic-button recording" onClick={stopRecording}>
+                  Stop recording
+                </button>
+              )}
+
+              <div className="actions">
+                <button type="button" className="clear" onClick={clearAll}>
+                  Clear
+                </button>
+                <button className="submit" type="submit" disabled={loading || !question.trim()}>
+                  {loading ? "Working (about 10-20 s)..." : "Get verified answer"}
+                </button>
+              </div>
+            </form>
+            {message ? <p className="message">{message}</p> : null}
+            {error ? (
+              <p className="error" role="alert">
+                {error}
+              </p>
+            ) : null}
+          </section>
+
+          <section className="panel">
+            <div className="panel-heading">
+              <span>2</span>
+              <div>
+                <h2>Verified advisory</h2>
+                <p>Answer, Trust Score and sources.</p>
+              </div>
+              {result ? (
+                <b className={`badge ${passed ? "pass" : "reject"}`}>{result.verdict}</b>
+              ) : null}
+            </div>
+
+            {!result && !loading ? (
+              <div className="empty">
+                <h3>Your answer will appear here</h3>
+                <p>Ask a question to get an answer checked against official documents.</p>
                 <div>
-                  <strong>{item.question}</strong>
-                  <p>
-                    {item.verdict} · {item.trust_score} · {item.language}
-                  </p>
+                  <span>
+                    01
+                    <br />
+                    <small>Retrieve</small>
+                  </span>
+                  <span>
+                    02
+                    <br />
+                    <small>Generate</small>
+                  </span>
+                  <span>
+                    03
+                    <br />
+                    <small>Verify</small>
+                  </span>
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+              </div>
+            ) : null}
+
+            {loading ? (
+              <div className="empty">
+                <div className="spinner" />
+                <h3>Preparing your advice...</h3>
+                <p>Retrieving documents, generating and verifying the answer.</p>
+              </div>
+            ) : null}
+
+            {result && !loading ? (
+              <div>
+                <div className="trust-row">
+                  <span>Trust Score</span>
+                  <strong style={{ color: scoreColor(score) }}>{score.toFixed(4)}</strong>
+                  <small>threshold {result.tau ?? 0.6}</small>
+                </div>
+                <div className="meter">
+                  <div
+                    className="meter-fill"
+                    style={{
+                      width: `${Math.max(4, Math.min(100, score * 100))}%`,
+                      background: scoreColor(score),
+                    }}
+                  />
+                </div>
+
+                {result.search_query ? (
+                  <p className="understood">
+                    Understood as: <em>{result.search_query}</em>
+                    {result.language ? ` · ${LANG_NAMES[result.language] || result.language}` : ""}
+                  </p>
+                ) : null}
+
+                <div className="answer-tools">
+                  <small>Answer</small>
+                  <span>
+                    <button type="button" onClick={() => navigator.clipboard?.writeText(result.final_answer)}>
+                      Copy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        speakAnswer(result.speech_text || result.final_answer, result.language || "en")
+                      }
+                    >
+                      Play voice
+                    </button>
+                    <button type="button" className="stop-reading" onClick={stopSpeech} disabled={!speaking}>
+                      Stop
+                    </button>
+                  </span>
+                </div>
+                <div className="answer-text">{renderAnswer(result.final_answer)}</div>
+
+                {result.verdict === "REJECT" && result.generated_answer ? (
+                  <details className="draft">
+                    <summary>Hidden unverified draft</summary>
+                    <p>{result.generated_answer}</p>
+                  </details>
+                ) : null}
+
+                <div className="sources">
+                  <h3>
+                    Supporting sources <small>{(result.sources || []).slice(0, 4).length} sources</small>
+                  </h3>
+                  {(result.sources || []).slice(0, 4).map((source, index) => (
+                    <details key={`${source.file}-${index}`} className="source">
+                      <summary>
+                        <b>
+                          {source.file} · p.{source.page}
+                        </b>
+                        <span>{formatSnippet(source.snippet).slice(0, 150)}...</span>
+                      </summary>
+                      <p>{formatSnippet(source.snippet)}</p>
+                    </details>
+                  ))}
+                </div>
+                <p className="disclaimer">
+                  Informational guidance from official documents. Confirm important
+                  treatment decisions with a local agricultural officer.
+                </p>
+              </div>
+            ) : null}
+          </section>
+        </div>
+
+        <section className="panel history-panel">
+          <div className="panel-heading">
+            <span>H</span>
+            <div>
+              <h2>Recent queries</h2>
+              <p>Saved in the local database.</p>
+            </div>
+          </div>
+          {history.length === 0 ? (
+            <p className="muted">No history yet.</p>
+          ) : (
+            <ul className="history">
+              {history.map((item) => (
+                <li key={item.id}>
+                  <strong>{item.question}</strong>
+                  <span className={`pill ${item.verdict === "PASS" ? "pass" : "reject"}`}>
+                    {item.verdict} · {item.trust_score} · {item.language}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </main>
+
+      <footer>Voice-Based Multilingual Agricultural Advisory · RAG with answer verification</footer>
     </div>
   );
 }

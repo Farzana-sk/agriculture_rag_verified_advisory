@@ -5,8 +5,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from pipeline import run_advisory
-from stt import record_and_transcribe
+try:
+    from .pipeline import run_advisory
+    from .stt import record_and_transcribe
+except ImportError:  # pragma: no cover - script execution support
+    from pipeline import run_advisory
+    from stt import record_and_transcribe
 
 
 def main() -> None:

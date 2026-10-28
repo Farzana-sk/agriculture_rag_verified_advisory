@@ -8,8 +8,12 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from config import CHROMA_DB_DIR, RAW_PDF_DIR, ROOT_DIR, SKIP_PDF_SUBSTRINGS
-from embeddings import get_embedding_model
+try:
+    from .config import CHROMA_DB_DIR, RAW_PDF_DIR, ROOT_DIR, SKIP_PDF_SUBSTRINGS
+    from .embeddings import get_embedding_model
+except ImportError:  # pragma: no cover - script execution support
+    from config import CHROMA_DB_DIR, RAW_PDF_DIR, ROOT_DIR, SKIP_PDF_SUBSTRINGS
+    from embeddings import get_embedding_model
 
 
 def is_knowledge_pdf(path: Path) -> bool:

@@ -8,13 +8,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel, Field
 
-from config import TAU_THRESHOLD
-from db import init_db, list_advisories
-from embeddings import get_embedding_model, get_vector_store
-from language import detect_language
-from pipeline import run_advisory
-from stt import transcribe_audio_bytes
-from tts import synthesize_speech
+try:
+    from .config import TAU_THRESHOLD
+    from .db import init_db, list_advisories
+    from .embeddings import get_embedding_model, get_vector_store
+    from .language import detect_language
+    from .pipeline import run_advisory
+    from .stt import transcribe_audio_bytes
+    from .tts import synthesize_speech
+except ImportError:  # pragma: no cover - script execution support
+    from config import TAU_THRESHOLD
+    from db import init_db, list_advisories
+    from embeddings import get_embedding_model, get_vector_store
+    from language import detect_language
+    from pipeline import run_advisory
+    from stt import transcribe_audio_bytes
+    from tts import synthesize_speech
 
 app = FastAPI(
     title="Voice-Based Agricultural Advisory",

@@ -1,7 +1,11 @@
 from pathlib import Path
 
-from config import RETRIEVE_K
-from embeddings import get_vector_store
+try:
+    from .config import RETRIEVE_K
+    from .embeddings import get_vector_store
+except ImportError:  # pragma: no cover - script execution support
+    from config import RETRIEVE_K
+    from embeddings import get_vector_store
 
 CROP_FILES = {
     "cotton": "cotton.pdf",

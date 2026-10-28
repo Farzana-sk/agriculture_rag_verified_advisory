@@ -5,10 +5,16 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import EVAL_RESULTS_CSV, TEST_QUESTIONS_CSV, TAU_THRESHOLD
-from generate import generate_answer
-from retrieve import build_context, retrieve_documents
-from verify import verify_answer
+try:
+    from .config import EVAL_RESULTS_CSV, TEST_QUESTIONS_CSV, TAU_THRESHOLD
+    from .generate import generate_answer
+    from .retrieve import build_context, retrieve_documents
+    from .verify import verify_answer
+except ImportError:  # pragma: no cover - script execution support
+    from config import EVAL_RESULTS_CSV, TEST_QUESTIONS_CSV, TAU_THRESHOLD
+    from generate import generate_answer
+    from retrieve import build_context, retrieve_documents
+    from verify import verify_answer
 
 
 def main() -> None:

@@ -1,15 +1,29 @@
-from config import SAFE_REFUSAL, TAU_THRESHOLD
-from db import save_advisory
-from generate import generate_answer
-from language import (
-    detect_language,
-    prepare_speech_text,
-    rewrite_to_english,
-    spoken_summary,
-    translate_answer,
-)
-from retrieve import build_context, retrieve_documents
-from verify import verify_answer
+try:
+    from .config import SAFE_REFUSAL, TAU_THRESHOLD
+    from .db import save_advisory
+    from .generate import generate_answer
+    from .language import (
+        detect_language,
+        prepare_speech_text,
+        rewrite_to_english,
+        spoken_summary,
+        translate_answer,
+    )
+    from .retrieve import build_context, retrieve_documents
+    from .verify import verify_answer
+except ImportError:  # pragma: no cover - script execution support
+    from config import SAFE_REFUSAL, TAU_THRESHOLD
+    from db import save_advisory
+    from generate import generate_answer
+    from language import (
+        detect_language,
+        prepare_speech_text,
+        rewrite_to_english,
+        spoken_summary,
+        translate_answer,
+    )
+    from retrieve import build_context, retrieve_documents
+    from verify import verify_answer
 
 REFUSALS = {
     "en": SAFE_REFUSAL,
@@ -64,7 +78,7 @@ def run_advisory(question: str, language: str | None = None) -> dict:
     # Farmer question language wins. "vari rakalu emiti?" is Telugu even if
     # the dropdown is English.
     output_lang = detect_language(question, language)
-    search_query = rewrite_to_english(question)
+    search_query = question if output_lang == "en" else rewrite_to_english(question)
     sources = retrieve_documents(search_query)
     context = build_context(sources)
     generated = generate_answer(search_query, context)

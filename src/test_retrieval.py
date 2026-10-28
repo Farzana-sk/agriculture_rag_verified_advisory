@@ -3,7 +3,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from retrieve import retrieve_documents
+try:
+    from .retrieve import retrieve_documents
+except ImportError:  # pragma: no cover - script execution support
+    from retrieve import retrieve_documents
 
 QUERIES = [
     "What are the varieties of cotton?",
