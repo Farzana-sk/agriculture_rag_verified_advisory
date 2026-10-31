@@ -77,10 +77,14 @@ textarea { resize: vertical; line-height: 1.6; }
 .answer-tools button { padding: 7px 11px; color: #52765b; background: #f1f7f0; font-size: 12px; }
 .answer-tools button.stop-reading { color: #a04444; background: #fff0f0; }
 .answer-tools button:disabled { cursor: not-allowed; opacity: .5; }
-.answer-text { padding: 20px 0; white-space: pre-wrap; line-height: 1.8; overflow-wrap: anywhere; }
+.answer-text { display: grid; gap: 10px; padding: 20px 0; line-height: 1.8; overflow-wrap: anywhere; }
+.answer-item { margin: 0; padding: 10px 14px; border-left: 3px solid #78ad82; border-radius: 0 8px 8px 0; background: #f7faf6; }
+.answer-item strong { color: #205f36; font-weight: 800; }
 
 .draft { margin: 0 0 14px; padding: 12px; border-radius: 8px; background: #fff7f7; font-size: 13px; }
 .draft summary { cursor: pointer; color: #a02d2d; font-weight: 700; }
+.english-original { background: #f4f9f4; }
+.english-original summary { color: #2f7a46; }
 
 .sources { margin-top: 10px; padding-top: 17px; border-top: 1px solid #e4ece4; }
 .sources h3 { display: flex; justify-content: space-between; margin: 0 0 8px; font-size: 15px; }

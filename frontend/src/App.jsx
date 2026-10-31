@@ -24,13 +24,26 @@ function formatSnippet(text) {
 }
 
 // Show **bold** properly and drop stray markdown asterisks.
-function renderAnswer(text) {
-  return (text || "").split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+function renderAnswerLine(text, lineIndex) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, partIndex) => {
+    const key = `${lineIndex}-${partIndex}`;
     if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={index}>{part.slice(2, -2)}</strong>;
+      return <strong key={key}>{part.slice(2, -2)}</strong>;
     }
     return part.replace(/\*/g, "");
   });
+}
+
+function renderAnswer(text) {
+  return (text || "")
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index) => (
+      <p className="answer-item" key={index}>
+        {renderAnswerLine(line.replace(/^\s*[-*]\s+/, ""), index)}
+      </p>
+    ));
 }
 
 export default function App() {
@@ -38,7 +51,7 @@ export default function App() {
   const [language, setLanguage] = useState("auto");
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
+  const [voiceState, setVoiceState] = useState("idle"); // idle | loading | playing
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
@@ -47,6 +60,7 @@ export default function App() {
   const chunksRef = useRef([]);
   const audioRef = useRef(null);
   const speakToken = useRef(0);
+  const speechCache = useRef({ key: "", promise: null });
 
   function stopSpeech() {
     speakToken.current += 1;
@@ -56,7 +70,7 @@ export default function App() {
       audioRef.current.src = "";
       audioRef.current = null;
     }
-    setSpeaking(false);
+    setVoiceState("idle");
   }
 
   async function loadHistory() {
@@ -74,30 +88,56 @@ export default function App() {
     return () => stopSpeech();
   }, []);
 
+  // Fetch the voice once and keep it, so Play is instant after prefetch.
+  function fetchSpeech(text, lang) {
+    const voiceLang = lang === "hi" || lang === "te" ? lang : "en";
+    const key = `${voiceLang}|${text}`;
+    if (speechCache.current.key === key && speechCache.current.promise) {
+      return speechCache.current.promise;
+    }
+    const promise = fetch(`${API}/speak`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, language: voiceLang }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Voice could not be generated.");
+        return response.blob();
+      })
+      .then((blob) => URL.createObjectURL(blob));
+    promise.catch(() => {
+      if (speechCache.current.promise === promise) {
+        speechCache.current = { key: "", promise: null };
+      }
+    });
+    speechCache.current = { key, promise };
+    return promise;
+  }
+
   async function speakAnswer(text, lang) {
     if (!text) return;
     stopSpeech();
     const myToken = speakToken.current;
-    const voiceLang = lang === "hi" || lang === "te" ? lang : "en";
     try {
-      setSpeaking(true);
-      const response = await fetch(`${API}/speak`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, language: voiceLang }),
-      });
-      if (!response.ok) throw new Error("Voice could not be generated.");
-      const blob = await response.blob();
+      setVoiceState("loading");
+      const url = await fetchSpeech(text, lang);
       if (myToken !== speakToken.current) return; // newer click or Stop happened
-      const audio = new Audio(URL.createObjectURL(blob));
-      audio.onended = () => setSpeaking(false);
+      const audio = new Audio(url);
+      audio.onended = () => setVoiceState("idle");
       audioRef.current = audio;
       await audio.play();
+      setVoiceState("playing");
     } catch (err) {
-      setSpeaking(false);
+      setVoiceState("idle");
       setError(err.message || "Voice playback failed.");
     }
   }
+
+  // Prepare the voice in the background as soon as an answer appears.
+  useEffect(() => {
+    if (!result) return;
+    fetchSpeech(result.speech_text || result.final_answer, result.language || "en").catch(() => {});
+  }, [result]);
 
   async function submitText(event) {
     event.preventDefault();
@@ -378,14 +418,21 @@ export default function App() {
                         speakAnswer(result.speech_text || result.final_answer, result.language || "en")
                       }
                     >
-                      Play voice
+                      {voiceState === "loading" ? "Preparing voice..." : "Play voice"}
                     </button>
-                    <button type="button" className="stop-reading" onClick={stopSpeech} disabled={!speaking}>
+                    <button type="button" className="stop-reading" onClick={stopSpeech} disabled={voiceState === "idle"}>
                       Stop
                     </button>
                   </span>
                 </div>
                 <div className="answer-text">{renderAnswer(result.final_answer)}</div>
+
+                {result.language && result.language !== "en" && result.generated_answer ? (
+                  <details className="draft english-original">
+                    <summary>English original (the text that was verified)</summary>
+                    <p>{result.generated_answer}</p>
+                  </details>
+                ) : null}
 
                 {result.verdict === "REJECT" && result.generated_answer ? (
                   <details className="draft">
