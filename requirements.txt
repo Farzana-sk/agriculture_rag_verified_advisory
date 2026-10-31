@@ -15,3 +15,5 @@ gTTS
 langdetect
 python-multipart
 pydantic
+
+edge-tts

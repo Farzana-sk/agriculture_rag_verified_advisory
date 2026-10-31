@@ -1,7 +1,7 @@
 .env
 __pycache__/
 *.wav
-*.mp3x
+*.mp3
 chroma_db/
 venv/
 .venv/
@@ -10,3 +10,4 @@ data/evaluation_results.csv
 frontend/node_modules/
 frontend/dist/
 .DS_Store
+tts_lab/
