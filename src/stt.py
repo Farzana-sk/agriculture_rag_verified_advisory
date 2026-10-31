@@ -8,10 +8,13 @@ try:
 except ImportError:  # pragma: no cover - script execution support
     from config import GROQ_API_KEY, STT_MODEL, require_groq_key
 
-AGRI_PROMPT = (
-    "Farmer question about cotton (pratti panta), paddy, groundnut, chilli, tomato. "
-    "Telugu words: pratti panta cotton, aakulu leaves, yellow colour, em cheyyali."
-)
+# The hint must be written in the SAME script as the speech. An English-letter
+# hint pushes Whisper to answer in English/romanized text even for Telugu audio.
+AGRI_PROMPTS = {
+    "te": "వ్యవసాయ ప్రశ్న: పత్తి, వరి, వేరుశనగ, మిరప, టమాటా, వంకాయ, విత్తన మోతాదు, పంట కాలం, రకాలు.",
+    "hi": "कृषि प्रश्न: कपास, धान, मूंगफली, मिर्च, टमाटर, बीज दर, फसल अवधि, किस्में।",
+    "en": "Farmer question about cotton, paddy, groundnut, chilli, tomato, brinjal, seed rate, crop duration, varieties.",
+}
 
 
 def transcribe_audio_bytes(
@@ -29,10 +32,11 @@ def transcribe_audio_bytes(
         "model": STT_MODEL,
         "response_format": "verbose_json",
         "temperature": 0,
-        "prompt": AGRI_PROMPT,
     }
     if language in {"en", "hi", "te"}:
         kwargs["language"] = language
+        kwargs["prompt"] = AGRI_PROMPTS[language]
+    # language is None ("Auto detect"): send no hint so Whisper detects freely.
     result = client.audio.transcriptions.create(**kwargs)
     text = (getattr(result, "text", None) or str(result)).strip()
     detected = getattr(result, "language", None)
