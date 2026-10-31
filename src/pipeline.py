@@ -37,39 +37,6 @@ REFUSALS = {
     ),
 }
 
-AGRI_HINTS = (
-    "cotton",
-    "paddy",
-    "rice",
-    "groundnut",
-    "tomato",
-    "chilli",
-    "chili",
-    "leaf",
-    "leaves",
-    "pest",
-    "pesticide",
-    "fertilizer",
-    "variety",
-    "varieties",
-    "yellow",
-    "crop",
-    "pratti",
-    "panta",
-    "vari",
-    "rakalu",
-    "aakulu",
-    "jassid",
-    "nursery",
-    "vegetable",
-)
-
-
-def is_agriculture_query(question: str, search_query: str) -> bool:
-    blob = f"{question} {search_query}".lower()
-    return any(hint in blob for hint in AGRI_HINTS)
-
-
 def run_advisory(question: str, language: str | None = None) -> dict:
     question = (question or "").strip()
     if not question:
@@ -84,16 +51,20 @@ def run_advisory(question: str, language: str | None = None) -> dict:
     generated = generate_answer(search_query, context)
     verification = verify_answer(generated, context, TAU_THRESHOLD, sources)
 
-    agri = is_agriculture_query(question, search_query)
-    if verification["verdict"] == "PASS":
-        english_answer = generated
-    elif agri and generated:
+    # Only a PASSed answer is released. A REJECTed answer is NEVER shown as the
+    # answer (it stays available as "generated_answer" for the UI/evaluation).
+    if verification["verdict"] == "PASS" and generated:
         english_answer = generated
     else:
         english_answer = REFUSALS["en"]
 
     if output_lang in {"te", "hi"}:
-        final_answer = translate_answer(english_answer, output_lang)
+        # Refusals are already written in each language; translate real answers only.
+        final_answer = (
+            REFUSALS[output_lang]
+            if english_answer == REFUSALS["en"]
+            else translate_answer(english_answer, output_lang)
+        )
     else:
         final_answer = english_answer
 

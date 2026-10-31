@@ -497,6 +497,13 @@ def prepare_speech_text(text: str, language: str = "en") -> str:
     text = normalize_text(text)
     if language == "te" and text.strip() and _needs_telugu_translation(text):
         return _TELUGU_SPEECH_UNAVAILABLE
+    # Text inside ( ) or [ ] becomes its own spoken segment, marked with "|".
+    # tts.py pauses at each "|", so bracket info is read AFTER the sentence ends.
+    text = re.sub(
+        r"\s*[(\[]([^()\[\]]*)[)\]]",
+        lambda m: f" | {m.group(1).strip()} | " if m.group(1).strip() else " ",
+        text,
+    )
     if language == "te":
         text = re.sub(r"(?m)^\s*[-*•]\s+", "", text)
         text = re.sub(r"(?<=[.!?])\s*\n\s*", " ", text)
@@ -535,7 +542,7 @@ def prepare_speech_text(text: str, language: str = "en") -> str:
         # such as ా ి ు ్ are category M*, and isalpha() is False for them.
         category = unicodedata.category(ch)
         keep_digit = ch.isdigit()
-        if category[0] in ("L", "M") or keep_digit or ch.isspace() or ch in " .,;:'-\u0964":
+        if category[0] in ("L", "M") or keep_digit or ch.isspace() or ch in " .,;:'-|\u0964":
             letters.append(ch)
     cleaned = re.sub(r"\s+", " ", "".join(letters)).strip(" .-")
     if language == "en":

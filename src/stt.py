@@ -4,9 +4,9 @@ from pathlib import Path
 from groq import Groq
 
 try:
-    from .config import GROQ_API_KEY, STT_MODEL, require_groq_key
+    from .config import STT_MODEL, require_groq_key
 except ImportError:  # pragma: no cover - script execution support
-    from config import GROQ_API_KEY, STT_MODEL, require_groq_key
+    from config import STT_MODEL, require_groq_key
 
 # The hint must be written in the SAME script as the speech. An English-letter
 # hint pushes Whisper to answer in English/romanized text even for Telugu audio.
@@ -24,8 +24,6 @@ def transcribe_audio_bytes(
 ) -> dict:
     if not audio_bytes:
         return {"text": "", "language": language or "en"}
-    if not GROQ_API_KEY:
-        return {"text": "Transcription is unavailable without a Groq API key.", "language": language or "en"}
     client = Groq(api_key=require_groq_key(), timeout=60.0)
     kwargs = {
         "file": (filename, audio_bytes),
