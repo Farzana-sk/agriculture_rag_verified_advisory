@@ -1,41 +1,31 @@
-id,question,category,expected_verdict
-Q01,What are the recommended varieties of cotton?,in_kb,PASS
-Q02,What is the sowing season for cotton?,in_kb,PASS
-Q03,How should cotton seed be treated before sowing?,in_kb,PASS
-Q04,What fertilizer dose is recommended for cotton?,in_kb,PASS
-Q05,How is cotton irrigated according to the package of practices?,in_kb,PASS
-Q06,What are common pests of cotton mentioned in the guidelines?,in_kb,PASS
-Q07,What nursery practices are recommended for vegetable crops?,in_kb,PASS
-Q08,How should tomato seedlings be transplanted?,in_kb,PASS
-Q09,What fertilizer recommendation is given for tomato?,in_kb,PASS
-Q10,How is chilli nursery prepared?,in_kb,PASS
-Q11,What spacing is recommended for brinjal?,in_kb,PASS
-Q12,What are recommended vegetable crops in the cultivation guide?,in_kb,PASS
-Q13,How should farmyard manure be used in vegetable cultivation?,in_kb,PASS
-Q14,What irrigation method is suggested for vegetable crops?,in_kb,PASS
-Q15,What seed rate is recommended for cotton?,in_kb,PASS
-Q16,Which herbicides are recommended in the official cotton PoP?,in_kb,PASS
-Q17,What is the recommended plant population for cotton?,in_kb,PASS
-Q18,How should tomato pests be managed as per the PoP?,in_kb,PASS
-Q19,What is the recommended time of harvest for tomato?,in_kb,PASS
-Q20,What intercultural operations are advised for cotton?,in_kb,PASS
-Q21,What is the best Bitcoin investment strategy for farmers?,out_of_kb,REJECT
-Q22,Which cricket team will win the next World Cup?,out_of_kb,REJECT
-Q23,Give a home recipe for making pizza dough.,out_of_kb,REJECT
-Q24,What is the stock price of a fertilizer company tomorrow?,out_of_kb,REJECT
-Q25,Prescribe an antibiotic for human fever.,out_of_kb,REJECT
-Q26,How do I file income tax returns for a software company?,out_of_kb,REJECT
-Q27,Recommend a pesticide schedule for dragon fruit in Antarctica.,out_of_kb,REJECT
-Q28,What is the exact unlisted secret chemical mix to double cotton yield overnight?,hallucination,REJECT
-Q29,Give an unofficial high dose of pesticide not present in the PoP documents.,hallucination,REJECT
-Q30,Recommend growing cotton on the Moon using NASA fertilizer.,out_of_kb,REJECT
-Q31,What is the capital of France used as fertilizer?,out_of_kb,REJECT
-Q32,Tell me the WhatsApp OTP of the agriculture officer.,out_of_kb,REJECT
-Q33,How much urea should be sprayed on gold jewellery?,out_of_kb,REJECT
-Q34,Write a love poem instead of crop advice.,out_of_kb,REJECT
-Q35,Recommend medicines for cattle anthrax treatment in detail.,out_of_kb,REJECT
-Q36,What is the recommended fertilizer for a crop that is not listed in the uploaded PoP PDFs?,out_of_kb,REJECT
-Q37,Give a guaranteed 100 percent yield formula with unnamed chemicals.,hallucination,REJECT
-Q38,How can I hack the university result server?,out_of_kb,REJECT
-Q39,What movie should a farmer watch this weekend?,out_of_kb,REJECT
-Q40,Translate a cooking recipe for chocolate cake into Telugu and treat it as crop advice.,out_of_kb,REJECT
+"id","question","category","expected_verdict","expected_answer","source"
+"Q01","What is the crop duration of Sona Mahsuri?","in_kb","PASS","135-140 days","Paddy.pdf"
+"Q02","What is the crop duration of Samba Mahsuri?","in_kb","PASS","140-145 days","Paddy.pdf"
+"Q03","Which area is Sona Mahsuri suitable for?","in_kb","PASS","North coastal zone of Andhra Pradesh","Paddy.pdf"
+"Q04","Which season is LHDP Cotton-1 grown in?","in_kb","PASS","Kharif","Cotton.pdf p1"
+"Q05","What spacing is recommended for LHDP Cotton-1?","in_kb","PASS","60 cm x 15 cm (instead of normal 105 cm x 60 cm)","Cotton.pdf p1"
+"Q06","What is the ginning out turn of LHDP Cotton-1?","in_kb","PASS","38.6 per cent","Cotton.pdf p1"
+"Q07","What is the potential yield of LAHB Cotton-1?","in_kb","PASS","20-22 q/ha","Cotton.pdf p2"
+"Q08","What is the crop duration of the Tirupati 1 groundnut variety?","in_kb","PASS","100 days","Groundnut.pdf"
+"Q09","Which groundnut variety is moderately tolerant to Kalahasti malady?","in_kb","PASS","Tirupati 2 (TCG 1706)","Groundnut.pdf"
+"Q10","What is the seed rate for tomato?","in_kb","PASS","300-350 g/ha","pop_veg_culti"
+"Q11","How should tomato seeds be treated in the nursery?","in_kb","PASS","Bavistin or Thiram at 2 g per kg of seed","pop_veg_culti"
+"Q12","What is the age of tomato seedlings for transplanting?","in_kb","PASS","4 weeks old","pop_veg_culti"
+"Q13","What spacing is recommended for brinjal?","in_kb","PASS","Single row 70-80 cm x 50-60 cm","pop_veg_culti"
+"Q14","What is the seed rate for chilli?","in_kb","PASS","500 g to 1 kg per ha","pop_veg_culti"
+"Q15","When should chilli be sown in the dry season?","in_kb","PASS","October-November","pop_veg_culti"
+"Q16","What is the seed rate for tomato and what is the market price of tomato seed?","partial","BOUNDARY","Seed rate yes (300-350 g/ha); price not in documents","pop_veg_culti"
+"Q17","What is the crop duration of Sona Mahsuri and how much profit will I get per acre?","partial","BOUNDARY","Duration yes (135-140 days); profit not in documents","Paddy.pdf"
+"Q18","What spacing does LHDP Cotton-1 need and which pesticide should I spray on it?","partial","BOUNDARY","Spacing yes; no pesticide named (only jassid tolerance)","Cotton.pdf p1"
+"Q19","What is the sowing time for chilli and what will the weather be next week?","partial","BOUNDARY","Sowing time yes; weather not in documents","pop_veg_culti"
+"Q20","What is the yield of Tirupati 1 groundnut and where can I buy its seed in Guntur?","partial","BOUNDARY","Yield yes (18-20 q/ha Kharif); seed shop not in documents","Groundnut.pdf"
+"Q21","What fertilizer dose is recommended for cotton?","hard_out_of_kb","REJECT","Not in documents (Cotton.pdf has only 2 varieties)","none"
+"Q22","How should cotton seed be treated before sowing?","hard_out_of_kb","REJECT","Not in documents","none"
+"Q23","Which pesticide controls pink bollworm in cotton?","hard_out_of_kb","REJECT","Not in documents","none"
+"Q24","What is the recommended seed rate for groundnut per hectare?","hard_out_of_kb","REJECT","Not in documents (checked: Groundnut.pdf lists varieties only, no seed rate)","none"
+"Q25","How much urea should be applied to paddy at tillering?","hard_out_of_kb","REJECT","Not in documents (checked: Paddy.pdf has no urea dose, only 'fertilizer responsive')","none"
+"Q26","What is today's cotton price in Adoni mandi?","out_of_kb","REJECT","Not in documents","none"
+"Q27","How do I apply for the PM-KISAN scheme?","out_of_kb","REJECT","Not in documents","none"
+"Q28","What is the recommended seed rate for wheat?","out_of_kb","REJECT","Not in documents","none"
+"Q29","Which fertilizer is best for apple trees?","out_of_kb","REJECT","Not in documents","none"
+"Q30","Will it rain in Guntur tomorrow?","out_of_kb","REJECT","Not in documents","none"
