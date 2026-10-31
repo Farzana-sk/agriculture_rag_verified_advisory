@@ -1,6 +1,8 @@
 import asyncio
 import io
+import os
 import textwrap
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 try:
@@ -9,20 +11,29 @@ except ImportError:  # pragma: no cover - script execution support
     from language import prepare_speech_text, tts_lang_code
 
 # Microsoft neural voices (edge-tts): one streaming request, much faster than gTTS.
+# Change a voice without editing code: set TTS_VOICE_TE=te-IN-MohanNeural in .env
+# Telugu: te-IN-ShrutiNeural (female), te-IN-MohanNeural (male)
+# Hindi : hi-IN-SwaraNeural (female), hi-IN-MadhurNeural (male)
+# English (India): en-IN-NeerjaNeural (female), en-IN-PrabhatNeural (male)
 EDGE_VOICES = {
-    "en": "en-IN-NeerjaNeural",
-    "te": "te-IN-ShrutiNeural",
-    "hi": "hi-IN-SwaraNeural",
+    "en": os.getenv("TTS_VOICE_EN", "en-IN-NeerjaNeural"),
+    "te": os.getenv("TTS_VOICE_TE", "te-IN-ShrutiNeural"),
+    "hi": os.getenv("TTS_VOICE_HI", "hi-IN-SwaraNeural"),
 }
-SPEECH_RATE = "+10%"  # raise to "+20%" for faster speech
+# Speaking speed per language. Telugu was too fast at +10%, so it is slowed.
+SPEECH_RATES = {
+    "en": os.getenv("TTS_RATE_EN", "+0%"),
+    "te": os.getenv("TTS_RATE_TE", "-15%"),
+    "hi": os.getenv("TTS_RATE_HI", "-5%"),
+}
 
 
-def _edge_tts_bytes(text: str, voice: str) -> bytes:
+def _edge_tts_bytes(text: str, voice: str, rate: str) -> bytes:
     import edge_tts
 
     async def run() -> bytes:
         audio = bytearray()
-        communicate = edge_tts.Communicate(text, voice, rate=SPEECH_RATE)
+        communicate = edge_tts.Communicate(text, voice, rate=rate)
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
                 audio.extend(chunk["data"])
@@ -60,8 +71,14 @@ def synthesize_speech(text: str, language: str = "en") -> bytes:
             "hi": "सलाह तैयार है।",
         }.get(lang, "Advice is ready.")
 
+    started = time.time()
     try:
-        return _edge_tts_bytes(spoken, EDGE_VOICES.get(lang, EDGE_VOICES["en"]))
+        voice = EDGE_VOICES.get(lang, EDGE_VOICES["en"])
+        data = _edge_tts_bytes(spoken, voice, SPEECH_RATES.get(lang, "+0%"))
+        print(f"[tts] edge-tts {voice} {len(spoken)} chars in {time.time() - started:.1f}s")
+        return data
     except Exception as exc:  # edge-tts missing or offline: fall back to gTTS
-        print(f"[tts] edge-tts failed ({exc}); falling back to gTTS")
-        return _gtts_bytes(spoken, lang)
+        print(f"[tts] edge-tts FAILED ({exc!r}); falling back to gTTS")
+        data = _gtts_bytes(spoken, lang)
+        print(f"[tts] gTTS fallback {len(spoken)} chars in {time.time() - started:.1f}s")
+        return data
