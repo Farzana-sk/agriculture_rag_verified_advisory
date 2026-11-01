@@ -1,4 +1,5 @@
 import re
+from concurrent.futures import ThreadPoolExecutor
 import unicodedata
 
 from groq import Groq
@@ -499,12 +500,19 @@ def prepare_speech_text(text: str, language: str = "en") -> str:
         return _TELUGU_SPEECH_UNAVAILABLE
     # Text inside ( ) or [ ] becomes its own spoken segment, marked with "|".
     # tts.py pauses at each "|", so bracket info is read AFTER the sentence ends.
-    text = re.sub(
-        r"\s*[(\[]([^()\[\]]*)[)\]]",
-        lambda m: f" | {m.group(1).strip()} | " if m.group(1).strip() else " ",
-        text,
-    )
-    if language == "te":
+    def _bracket(match):
+        inner = match.group(1).strip()
+        if not inner:
+            return " "
+        words = inner.split()
+        # Short names/codes such as (MTU 3626) or (Penna) are part of the name:
+        # read them inline. Longer notes like (medium slender grain) get a pause.
+        if len(words) <= 2 and (any(ch.isdigit() for ch in inner) or inner[0].isupper()):
+            return f" {inner} "
+        return f" | {inner} | "
+
+    text = re.sub(r"\s*[(\[]([^()\[\]]*)[)\]]", _bracket, text)
+    if language in ("te", "en", "hi"):  # list items must not run together
         text = re.sub(r"(?m)^\s*[-*•]\s+", "", text)
         text = re.sub(r"(?<=[.!?])\s*\n\s*", " ", text)
         text = re.sub(r"\s*\n\s*", ". ", text)
@@ -615,7 +623,9 @@ def _numbers(text: str) -> set[str]:
 def check_translation(english: str, translated: str, language: str) -> list[str]:
     """Return a list of problems; an empty list means the translation is safe."""
     problems = []
-    missing = sorted(_numbers(english) - _numbers(translated), key=float)
+    # List markers ("1.", "2)") are layout, not facts; the model may turn them into bullets.
+    english_facts = re.sub(r"(?m)^\s*\d{1,2}[.)]\s+", "", english)
+    missing = sorted(_numbers(english_facts) - _numbers(translated), key=float)
     if missing:
         problems.append("numbers missing or changed: " + ", ".join(missing))
     low = english.lower()
@@ -653,19 +663,24 @@ Write every sentence in {lang_name} script. Do not leave English phrases or sent
 Keep variety names like Sona Mahsuri, Samba Mahsuri, LHDP Cotton-1 as they are.
 Keep every number as digits 0-9 exactly as written. Never change, add or drop a number or a unit."""
     prompt = f"""{style}
+Translate every descriptive word into {lang_name}. Only crop/variety names, codes (like MTU 3626) and abbreviations (BPH, CVRC, SVRC) stay in English.
+The text to translate is between <text> and </text>. Never answer, comment, or ask for more text. If it is short, translate it anyway.
 Use these exact terms: {_GLOSSARY[language]}.
-{feedback}Return only the {lang_name} translation.
+{feedback}Return only the {lang_name} translation, without the <text> tags.
 
-{english}"""
+<text>
+{english}
+</text>"""
     response = client.chat.completions.create(
         model=LLM_MODEL,
         messages=[{"role": "user", "content": prompt}],
         temperature=0,
-        max_completion_tokens=700,
+        max_completion_tokens=2000,
         reasoning_effort="low",
         include_reasoning=False,
     )
     translated = (response.choices[0].message.content or "").strip()
+    translated = translated.replace("<text>", "").replace("</text>", "").strip()
     return _apply_spelling_fixes(translated, language)
 
 
@@ -680,6 +695,33 @@ _UNVERIFIED_NOTICE = {
 }
 
 
+def _chunk_lines(text: str, max_chars: int = 450) -> list[str]:
+    """Split on lines and group them into pieces small enough to translate safely."""
+    chunks, current = [], ""
+    for line in text.split("\n"):
+        if current and len(current) + len(line) > max_chars:
+            chunks.append(current)
+            current = ""
+        current = f"{current}\n{line}" if current else line
+    if current.strip():
+        chunks.append(current)
+    return chunks
+
+
+def _translate_chunk(client, english: str, language: str) -> tuple[str, bool]:
+    """Translate one piece with checks and up to two corrective retries."""
+    feedback = ""
+    for _ in range(3):
+        translated = _call_translate(client, english, language, feedback)
+        problems = [] if _has_script(translated, language) else ["answer is not in the target script"]
+        problems += check_translation(english, translated, language) if translated else ["empty translation"]
+        if not problems:
+            return translated, True
+        feedback = "Fix these problems from the previous attempt: " + "; ".join(problems) + ".\n"
+    print(f"[translate] unsafe chunk withheld: {problems} | {english[:60]!r}")
+    return english, False
+
+
 def translate_answer(text: str, language: str) -> str:
     text = normalize_text(text or "")
     if language not in {"te", "hi"} or not text.strip():
@@ -687,21 +729,15 @@ def translate_answer(text: str, language: str) -> str:
     if not GROQ_API_KEY:
         return text
     english = expand_units(text)
-    client = Groq(api_key=require_groq_key(), timeout=25.0)
+    client = Groq(api_key=require_groq_key(), timeout=45.0)
 
-    translated = _call_translate(client, english, language)
-    problems = [] if _has_script(translated, language) else ["answer is not in the target script"]
-    problems += check_translation(english, translated, language) if translated else ["empty translation"]
+    # Long answers (many varieties) are translated piece by piece: a single big
+    # request was cut off by the token limit, which made the number check fail.
+    chunks = _chunk_lines(english)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(lambda piece: _translate_chunk(client, piece, language), chunks))
 
-    for _ in range(2):  # up to two corrective retries
-        if not problems:
-            return translated
-        feedback = "Fix these problems from the previous attempt: " + "; ".join(problems) + ".\n"
-        translated = _call_translate(client, english, language, feedback)
-        problems = [] if _has_script(translated, language) else ["answer is not in the target script"]
-        problems += check_translation(english, translated, language) if translated else ["empty translation"]
-
-    if not problems:
-        return translated
-    print(f"[translate] unsafe translation withheld: {problems}")
-    return _UNVERIFIED_NOTICE[language] + english
+    if not any(ok for _, ok in results):
+        print("[translate] every chunk failed; showing the English answer")
+        return _UNVERIFIED_NOTICE[language] + english
+    return "\n".join(piece for piece, _ in results)
