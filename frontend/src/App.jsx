@@ -46,6 +46,38 @@ function renderAnswer(text) {
     ));
 }
 
+const SPEECH_SCRIPT = { te: /[\u0c00-\u0c7f]/, hi: /[\u0900-\u097f]/ };
+
+function voiceLangOf(lang) {
+  return lang === "hi" || lang === "te" ? lang : "en";
+}
+
+// Split the spoken text into short pieces so the first piece can start playing
+// after ~1-2 seconds while the rest is prepared in the background.
+function splitForSpeech(text, voiceLang) {
+  const sentences = (text || "").split(/(?<=[.!?\u0964])\s+/).filter(Boolean);
+  const needScript = SPEECH_SCRIPT[voiceLang] || null;
+  const chunks = [];
+  let current = "";
+  for (const sentence of sentences) {
+    current = current ? `${current} ${sentence}` : sentence;
+    // A Telugu/Hindi piece must contain that script, otherwise the backend
+    // would treat it as untranslated English.
+    if (current.length >= 200 && (!needScript || needScript.test(current))) {
+      chunks.push(current);
+      current = "";
+    }
+  }
+  if (current.trim()) {
+    if (chunks.length && needScript && !needScript.test(current)) {
+      chunks[chunks.length - 1] += ` ${current}`;
+    } else {
+      chunks.push(current);
+    }
+  }
+  return chunks.length ? chunks : [text];
+}
+
 export default function App() {
   const [question, setQuestion] = useState("");
   const [language, setLanguage] = useState("auto");
@@ -60,12 +92,14 @@ export default function App() {
   const chunksRef = useRef([]);
   const audioRef = useRef(null);
   const speakToken = useRef(0);
-  const speechCache = useRef({ key: "", promise: null });
+  const speechCache = useRef(new Map());
 
   function stopSpeech() {
     speakToken.current += 1;
     window.speechSynthesis?.cancel();
     if (audioRef.current) {
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
       audioRef.current.pause();
       audioRef.current.src = "";
       audioRef.current = null;
@@ -88,13 +122,11 @@ export default function App() {
     return () => stopSpeech();
   }, []);
 
-  // Fetch the voice once and keep it, so Play is instant after prefetch.
-  function fetchSpeech(text, lang) {
-    const voiceLang = lang === "hi" || lang === "te" ? lang : "en";
+  // Fetch one piece of voice once and keep it, so replaying is instant.
+  function fetchChunk(text, voiceLang) {
     const key = `${voiceLang}|${text}`;
-    if (speechCache.current.key === key && speechCache.current.promise) {
-      return speechCache.current.promise;
-    }
+    const cached = speechCache.current.get(key);
+    if (cached) return cached;
     const promise = fetch(`${API}/speak`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -105,12 +137,8 @@ export default function App() {
         return response.blob();
       })
       .then((blob) => URL.createObjectURL(blob));
-    promise.catch(() => {
-      if (speechCache.current.promise === promise) {
-        speechCache.current = { key: "", promise: null };
-      }
-    });
-    speechCache.current = { key, promise };
+    promise.catch(() => speechCache.current.delete(key));
+    speechCache.current.set(key, promise);
     return promise;
   }
 
@@ -118,25 +146,41 @@ export default function App() {
     if (!text) return;
     stopSpeech();
     const myToken = speakToken.current;
+    const voiceLang = voiceLangOf(lang);
+    const chunks = splitForSpeech(text, voiceLang);
+    const get = (index) =>
+      index < chunks.length ? fetchChunk(chunks[index], voiceLang) : null;
     try {
       setVoiceState("loading");
-      const url = await fetchSpeech(text, lang);
-      if (myToken !== speakToken.current) return; // newer click or Stop happened
-      const audio = new Audio(url);
-      audio.onended = () => setVoiceState("idle");
-      audioRef.current = audio;
-      await audio.play();
-      setVoiceState("playing");
+      for (let i = 0; i < chunks.length; i += 1) {
+        const url = await get(i);
+        if (myToken !== speakToken.current) return; // newer click or Stop happened
+        get(i + 1)?.catch(() => {}); // keep the next pieces coming
+        get(i + 2)?.catch(() => {});
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        await new Promise((resolve, reject) => {
+          audio.onended = resolve;
+          audio.onerror = () => reject(new Error("Voice playback failed."));
+          audio.play().then(() => setVoiceState("playing")).catch(reject);
+        });
+        if (myToken !== speakToken.current) return;
+      }
+      setVoiceState("idle");
     } catch (err) {
+      if (myToken !== speakToken.current) return;
       setVoiceState("idle");
       setError(err.message || "Voice playback failed.");
     }
   }
 
-  // Prepare the voice in the background as soon as an answer appears.
+  // Prepare the first pieces of voice in the background as soon as an answer appears.
   useEffect(() => {
     if (!result) return;
-    fetchSpeech(result.speech_text || result.final_answer, result.language || "en").catch(() => {});
+    const voiceLang = voiceLangOf(result.language || "en");
+    splitForSpeech(result.speech_text || result.final_answer, voiceLang)
+      .slice(0, 3)
+      .forEach((piece) => fetchChunk(piece, voiceLang).catch(() => {}));
   }, [result]);
 
   async function submitText(event) {
