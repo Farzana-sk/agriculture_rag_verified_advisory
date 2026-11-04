@@ -290,7 +290,7 @@ export default function App() {
           </span>
         </div>
         <span className="online">
-          <i /> VVIT · AIM-C10
+          <i />Verified PoP Knowledge Base
         </span>
       </header>
 
