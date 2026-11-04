@@ -1,0 +1,22 @@
+model: openai/gpt-oss-20b
+
+=== ENGLISH ===
+Here are the paddy varieties listed in the provided documents:
+--- RAW TELUGU ---
+ఇక్కడ ఇచ్చిన పత్రాల్లో జాబితా చేసిన వరి రకాలు ఉన్నాయి:
+has Telugu script: True
+problems: []
+
+=== ENGLISH ===
+1. **Prabhat (MTU 3626)** – high-yielding, blast-tolerant, coarse grain, suitable for the Godavari Delta.
+--- RAW TELUGU ---
+- **Prabhat (MTU 3626)** – ఎక్కువ దిగుబడి, బ్లాస్ట్‑సహనశీల, పెద్ద ధాన్యము, గోదావరి డెల్టాకు అనుకూలం.
+has Telugu script: True
+problems: []
+
+=== ENGLISH ===
+2. **Pushyami (MTU 1075)** – non-lodging, tolerant to BPH, released by CVRC in 2008, suitable for Andhra Pradesh, Tamil Nadu, Gujarat and Maharashtra.
+--- RAW TELUGU ---
+- **Pushyami (MTU 1075)** – non‑lodging, BPH‑తట్టుకునే, CVRC ద్వారా 2008లో విడుదల, ఆంధ్రప్రదేశ్, తమిళనాడు, గుజరాత్, మహారాష్ట్రకు అనుకూలం.
+has Telugu script: True
+problems: []

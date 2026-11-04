@@ -8,7 +8,9 @@ data/test_questions.csv:
   BOUNDARY = partly covered; reported separately, not counted in accuracy
 
 Run:  python src\\evaluate_verifier.py
-      python src\\evaluate_verifier.py data\\test_questions_telugu.csv   (uses the English search query column "question" as-is)
+      python src\\evaluate_verifier.py data\\test_questions_telugu.csv
+Telugu questions are rewritten to an English search query first, exactly like the live app.
+Results go to data\\evaluation_results.csv (default set) or data\\evaluation_results_<name>.csv.
 """
 import sys
 from pathlib import Path
@@ -20,11 +22,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 try:
     from .config import EVAL_RESULTS_CSV, RETRIEVE_K, TAU_THRESHOLD, TEST_QUESTIONS_CSV
     from .generate import generate_answer
+    from .language import detect_language, rewrite_to_english
     from .retrieve import build_context, retrieve_documents
     from .verify import verify_answer
 except ImportError:  # pragma: no cover - script execution support
     from config import EVAL_RESULTS_CSV, RETRIEVE_K, TAU_THRESHOLD, TEST_QUESTIONS_CSV
     from generate import generate_answer
+    from language import detect_language, rewrite_to_english
     from retrieve import build_context, retrieve_documents
     from verify import verify_answer
 
@@ -58,7 +62,9 @@ def main() -> None:
     df = pd.read_csv(csv_path)
     rows = []
     for _, row in df.iterrows():
-        query = row["question"]
+        question = row["question"]
+        # Same as the live app: non-English questions become an English search query.
+        query = question if detect_language(question, None) == "en" else rewrite_to_english(question)
         sources = retrieve_documents(query, k=RETRIEVE_K)
         context = build_context(sources)
         # No try/except on purpose: a missing key or API error must STOP the run,
@@ -69,7 +75,8 @@ def main() -> None:
         rows.append(
             {
                 "id": row["id"],
-                "question": query,
+                "question": question,
+                "search_query": query,
                 "category": row["category"],
                 "expected_verdict": expected,
                 "tau_score": verification["trust_score"],
@@ -82,8 +89,11 @@ def main() -> None:
         print(f"{row['id']}: {verification['verdict']} (score={verification['trust_score']}) expected={expected}")
 
     results = pd.DataFrame(rows)
-    EVAL_RESULTS_CSV.parent.mkdir(parents=True, exist_ok=True)
-    results.to_csv(EVAL_RESULTS_CSV, index=False)
+    out_csv = EVAL_RESULTS_CSV
+    if csv_path.resolve() != TEST_QUESTIONS_CSV.resolve():
+        out_csv = EVAL_RESULTS_CSV.with_name(f"evaluation_results_{csv_path.stem}.csv")
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
+    results.to_csv(out_csv, index=False, encoding="utf-8-sig")
 
     labelled = results[results["expected_verdict"].isin(["PASS", "REJECT"])]
     answerable = labelled[labelled["expected_verdict"] == "PASS"]
@@ -123,7 +133,7 @@ def main() -> None:
         if best is None or balanced > best[0]:
             best = (balanced, tau)
     print(f"Best tau by balanced error: {best[1]:.2f}")
-    print(f"\nResults written to: {EVAL_RESULTS_CSV}")
+    print(f"\nResults written to: {out_csv}")
 
 
 if __name__ == "__main__":

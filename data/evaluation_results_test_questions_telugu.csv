@@ -1,0 +1,58 @@
+﻿id,question,search_query,category,expected_verdict,tau_score,actual_verdict,aligned,top_source,generated_answer
+T01,సోనా మసూరి పంట కాలం ఎంత?,Sona Masuri harvest time?,in_kb,PASS,0.7922,PASS,True,pop_HF.pdf,"Sona Mahsuri (BPT 3291) is a paddy variety that takes about **135–140 days** from planting to maturity.  
+It is grown in both the Kharif and Rabi seasons, so the harvest window will fall in the period that follows the 135–140‐day growth cycle for the season in which it was sown."
+T02,సాంబ మసూరి పంట కాలం ఎంత?,When is Samb Masoori harvest time?,in_kb,PASS,0.6085,PASS,True,pop_HF.pdf,"I’m sorry, but the provided documents do not contain any information about a crop called “Samb Masoori.” Therefore, I cannot give you a harvest time for that variety."
+T03,LHDP కాటన్-1 ఏ సీజన్‌లో సాగు చేస్తారు?,LHDP Cotton-1 growing season?,in_kb,PASS,0.7475,PASS,True,Cotton.pdf,"LHDP Cotton‐1 is a Kharif crop.  
+It is released for the South Zone of India under irrigated situations.  
+The crop duration is 145‐155 days.  
+These details are taken directly from the official Package of Practices."
+T04,LAHB కాటన్-1 దిగుబడి ఎంత?,LAHB cotton-1 yield?,in_kb,PASS,0.6548,PASS,True,Cotton.pdf,The potential yield of LAHB Cotton‐1 is reported as **20–22 quintals per hectare**. This figure is based on the official release information for the variety.
+T05,తిరుపతి 1 వేరుశనగ రకం పంట కాలం ఎంత?,Tirupati groundnut variety 1 harvest time,in_kb,PASS,0.7711,PASS,True,Groundnut.pdf,"Tirupati 1 (TCG 1704) is a groundnut variety released in 1989.  
+Its crop duration is 100 days.  
+Therefore, the harvest is expected around 100 days after sowing.  
+This timing applies to both Kharif and Rabi seasons."
+T06,టమాటా విత్తన మోతాదు ఎంత?,tomato seed quantity,in_kb,PASS,0.5664,REJECT,False,pop_veg_culti (1).pdf,"For tomato, the recommended seed rate depends on the sowing method.  
+- If you broadcast the seeds, use 12–15 kg of seed per hectare.  
+- If you sow in lines, the seed requirement is 8–10 kg per hectare.  
+These rates are based on the official package of practices for tomato cultivation."
+T07,వంకాయ మొక్కల మధ్య దూరం ఎంత ఉండాలి?,eggplant plant spacing,in_kb,PASS,0.5928,REJECT,False,pop_veg_culti (1).pdf,"The documents do not provide a specific spacing recommendation for eggplant.  
+They give general spacing guidelines for vegetable beds:  
+- Bed to bed spacing of 30 cm and plant to plant spacing of 5 cm (Source 1).  
+- Row to row spacing of 30–45 cm and 6–8 cm between plants (Source 2).  
+- In a square planting system, a spacing of 7.5 m or 9 m is ideal for tall varieties (Source 3).  
+- For seedling rows, a spacing of 10–15 cm is used with 3–5 cm between plants after thinning (Source 4).  
+- Capsicum is mentioned with a single row spacing of 60 cm × 50 cm and a double row bed system of 80 cm (Source 5).  
+
+Since eggplant is not explicitly mentioned, you may use a spacing similar to other vegetable crops, such as 30–45 cm between rows and 6–8 cm between plants, and adjust based on local soil and variety."
+T08,మిరప విత్తన మోతాదు ఎంత?,pepper seed quantity,in_kb,PASS,0.6017,PASS,True,pop_HF.pdf,"The provided documents do not specify a recommended quantity of pepper seed for planting. They describe general cultivation practices, such as seed washing, drying, and nursery management, but do not give a specific seed amount per hectare or per plot. If you need a seed quantity, you may need to consult additional resources or local extension guidelines."
+T09,టమాటా విత్తనాలను ఏ మందుతో శుద్ధి చేయాలి?,What disinfectant should be used to treat tomato seeds?,in_kb,PASS,0.4399,REJECT,False,pop_veg_culti (1).pdf,"The provided sources do not mention a specific disinfectant for treating tomato seeds. They describe seed treatments for other crops (e.g., Pseudomonas fluorescens for powdery mildew in various vegetables) and general pest control measures, but no disinfectant recommendation for tomato seeds is given."
+T10,పత్తి రకాలు ఏమిటి?,cotton varieties,in_kb,PASS,0.8564,PASS,True,Cotton.pdf,"The available cotton varieties are:
+
+1. **LHDP Cotton‐1** – an *G. hirsutum* variety released in 2018, suitable for the South Zone of India under irrigated conditions, with a crop duration of 145‐155 days and a potential yield of 25‐28 q/ha.  
+2. **LAHB Cotton‐1** – an inter‐specific hybrid of *G. hirsutum* × *G. barbadense* released in 2019, with a crop duration of 180‐195 days, a potential yield of 20‐22 q/ha, and also suited to the South Zone under irrigation.  
+3. **Cottondora Sannalu (MTU 1010)** – a paddy variety (not cotton) released in 1999, so it is not relevant for cotton cultivation.  
+
+LHDP Cotton‐1 is a short‐statured, high‐density planting type that tolerates jassids, is resistant to BLB and grey mildew, and has a ginning out turn of 38.6 %.  
+LAHB Cotton‐1 is noted for its long staple length (37.1 mm) and fine fibre quality (3.2 μg/inch)."
+T11,vari rakalu emiti?,recommended paddy varieties,in_kb,PASS,0.7748,PASS,True,Paddy.pdf,"Here are the paddy varieties mentioned in the provided documents:
+
+1. **Prabhat (MTU 3626)** – high‐yielding, blast‐tolerant, coarse grain, suitable for the Godavari Delta.  
+2. **Pushyami (MTU 1075)** – non‐lodging, tolerant to BPH, released in 2008 for Andhra Pradesh, Tamil Nadu, Gujarat and Maharashtra.  
+3. **Chandra (MTU 1153)** – non‐lodging, BPH and blast tolerant, low grain shattering, suitable for Punjab, Bihar, Madhya Pradesh, Chhattisgarh, Maharashtra, Tamil Nadu, Karnataka and Kerala.  
+4. **Teja (BPT 2595)** – BPH and blast tolerant, non‐lodging, non‐shattering, excellent cooking quality, suitable for single‐cropped areas of Guntur, Prakasam and Krishna District.  
+5. **Akshaya (BPT 2231)** – BPH and blast tolerant, non‐lodging, non‐shattering, excellent cooking quality, suitable for double‐cropped areas of Guntur and Krishna Districts."
+T12,pratti rakalu emiti?,recommended cotton varieties,in_kb,PASS,0.8383,PASS,True,Cotton.pdf,"The documents mention the following cotton varieties:
+
+1. **LHDP Cotton‐1** – a G. hirsutum variety released in 2018, suitable for high‐density planting in the South Zone of India under irrigated conditions.  
+2. **LAHB Cotton‐1** – an inter‐specific hybrid of G. hirsutum × G. barbadense released in 2019, also suited to the South Zone under irrigation.  
+3. **Cottondora Sannalu (MTU 1010)** – a paddy‐cotton hybrid (Krishnaveni × IR 64) released in 1999, suitable for Andhra Pradesh and Telangana.  
+
+These are the only varieties listed in the provided sources."
+T13,tamata vitthana matram entha?,tamata vitthana matram entha?,in_kb,PASS,0.3155,REJECT,False,pop_HF.pdf,"I’m sorry, but the provided documents do not contain any information about tomato varieties, yields, or cultivation practices."
+T14,"టమాటా విత్తన మోతాదు ఎంత, మార్కెట్‌లో విత్తనం ధర ఎంత?",tomato seed quantity and market price,partial,BOUNDARY,0.4231,REJECT,True,pop_veg_culti (1).pdf,The provided documents do not contain any information about tomato seed quantity or market price.
+T15,"సోనా మసూరి పంట కాలం ఎంత, ఎకరాకు లాభం ఎంత వస్తుంది?","సోనా మసూరి పంట కాలం ఎంత, ఎకరాకు లాభం ఎంత వస్తుంది?",partial,BOUNDARY,0.458,REJECT,True,Paddy.pdf,"I’m sorry, but the provided documents do not contain any information about the growing season or expected yield for Sonamoori (mung bean). Consequently, I cannot give you an estimate of the profit per acre."
+T16,పత్తికి ఎంత యూరియా వేయాలి?,How much urea for cotton?,hard_out_of_kb,REJECT,0.6289,PASS,False,Cotton.pdf,"I’m sorry, but the provided documents do not contain any information about urea application rates for cotton. They only describe the varieties, their parentage, yield potential, and suitability for the South Zone of India."
+T17,పత్తిలో గులాబీ రంగు కాయతొలుచు పురుగుకు ఏ మందు వాడాలి?,పత్తిలో గులాబీ రంగు కాయతొలుచు పురుగుకు ఏ మందు వాడాలి?,hard_out_of_kb,REJECT,0.5182,REJECT,True,Paddy.pdf,"I’m sorry, but the provided documents do not contain any information about a pesticide or spray recommendation for a pink‐colored leaf‐cutting pest on paddy. The sources only describe the varieties, their traits, and general disease management for banana."
+T18,ఈరోజు ఆదోని మార్కెట్‌లో పత్తి ధర ఎంత?,cotton price today Adoni market,out_of_kb,REJECT,0.4831,REJECT,True,Cotton.pdf,"I’m sorry, but the provided documents do not contain any information about current cotton prices in Adoni market."
+T19,రేపు గుంటూరులో వర్షం పడుతుందా?,Will it rain tomorrow in Guntur?,out_of_kb,REJECT,0.563,REJECT,True,pop_HF.pdf,"I’m sorry, but the provided documents do not contain any weather forecasts or information about tomorrow’s rainfall in Guntur. They only discuss planting times, soil conditions, and crop recommendations for cassava and other vegetables. If you need a weather update, please consult a local meteorological source."
+T20,పీఎం కిసాన్ పథకానికి ఎలా దరఖాస్తు చేయాలి?,How to apply for PM Kisan scheme?,out_of_kb,REJECT,0.3157,REJECT,True,pop_HF.pdf,"I’m sorry, but the provided documents do not contain any information about the PM Kisan scheme or how to apply for it."

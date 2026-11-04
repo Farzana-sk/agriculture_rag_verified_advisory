@@ -49,9 +49,21 @@ def _is_boilerplate(text: str) -> bool:
     return False
 
 
+def _general_files() -> set[str]:
+    """Crop-independent documents (e.g. the Panchangam calendars) that may answer
+    any crop question, such as sowing and harvest timing."""
+    try:
+        from .config import RAW_PDF_DIR
+    except ImportError:  # pragma: no cover - script execution support
+        from config import RAW_PDF_DIR
+    return {p.name.lower() for p in RAW_PDF_DIR.glob("*.pdf") if "panchangam" in p.name.lower()}
+
+
 def _preferred_files(query: str) -> set[str]:
     lowered = query.lower()
-    return {filename for crop, filename in CROP_FILES.items() if crop in lowered}
+    preferred = {filename for crop, filename in CROP_FILES.items() if crop in lowered}
+    # Keep the crop's own PDF first, but never hide the general documents.
+    return preferred | _general_files() if preferred else preferred
 
 
 def retrieve_documents(query: str, k: int = RETRIEVE_K) -> list[dict]:
