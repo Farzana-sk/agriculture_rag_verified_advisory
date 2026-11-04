@@ -9,7 +9,7 @@ button:focus-visible, textarea:focus-visible, select:focus-visible, summary:focu
 
 .agri-app { min-height: 100vh; color: #18382b; background: #f6faf5; }
 
-.topbar { max-width: 1180px; margin: auto; padding: 24px 28px; display: flex; justify-content: space-between; align-items: center; }
+.topbar { max-width: 100%; margin: auto; padding: 24px 28px; display: flex; justify-content: space-between; align-items: center; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-logo { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: #dff1df; color: #2f7a46; font-weight: 800; }
 .brand b { display: block; font-size: 22px; }
@@ -17,7 +17,7 @@ button:focus-visible, textarea:focus-visible, select:focus-visible, summary:focu
 .online { color: #557061; font-size: 13px; }
 .online i { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: #40a85b; }
 
-main { max-width: 1180px; margin: auto; padding: 20px 28px 50px; }
+main { max-width: 100%; margin: auto; padding: 20px 28px 50px; }
 
 .hero { display: flex; min-height: 240px; padding: 42px 50px; border-radius: 28px; background: linear-gradient(120deg, #e7f5e4, #f0f8e9); }
 .hero > div { max-width: 720px; }
@@ -35,14 +35,20 @@ main { max-width: 1180px; margin: auto; padding: 20px 28px 50px; }
 .panel-heading h2 { margin: 0; font-size: 21px; }
 .panel-heading p { margin: 5px 0 0; color: #819185; font-size: 13px; }
 
+/* UPDATED: Badge Styles */
 .badge { margin-left: auto; padding: 7px 12px; border-radius: 6px; font-size: 12px; font-weight: 800; letter-spacing: 1px; }
-.badge.pass, .pill.pass { color: #1f6b3c; background: #e2f4e6; }
+.badge.pass { color: white; background: #2f7a46; padding: 8px 16px; } 
+.pill.pass { color: #1f6b3c; background: #e2f4e6; }
 .badge.reject, .pill.reject { color: #a02d2d; background: #fdeaea; }
 
 form { display: flex; flex-direction: column; gap: 10px; }
 label { font-size: 13px; font-weight: 700; }
-select, textarea { width: 100%; padding: 13px; border: 1px solid #d6e2d6; border-radius: 10px; color: inherit; background: #fbfdfb; }
+
+/* UPDATED: Textarea & Select Styles */
+select, textarea { width: 100%; padding: 13px; border: 2px solid #e0e9df; border-radius: 10px; color: inherit; background: #ffffff; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); transition: border-color 0.2s ease; }
+textarea:focus, select:focus { border-color: #398c51; outline: none; }
 textarea { resize: vertical; line-height: 1.6; }
+
 .label-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
 .label-row small { color: #9aa99d; }
 
@@ -64,9 +70,10 @@ textarea { resize: vertical; line-height: 1.6; }
 .spinner { width: 36px; height: 36px; border: 4px solid #dbeadb; border-top-color: #398c51; border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* UPDATED: Trust Score */
 .trust-row { display: flex; align-items: baseline; gap: 10px; }
 .trust-row span { font-size: 13px; font-weight: 700; color: #5f8769; }
-.trust-row strong { font-size: 28px; }
+.trust-row strong { font-size: 32px; color: #2f7a46; } 
 .trust-row small { margin-left: auto; color: #89988d; }
 .meter { height: 8px; margin: 8px 0 14px; border-radius: 99px; background: #e8efe7; overflow: hidden; }
 .meter-fill { height: 100%; border-radius: 99px; }
@@ -100,12 +107,15 @@ textarea { resize: vertical; line-height: 1.6; }
 .disclaimer { margin: 18px 0 0; padding: 12px; border-radius: 8px; color: #806c35; background: #fff9e6; font-size: 12px; }
 
 .muted { color: #829289; }
-.history { list-style: none; margin: 0; padding: 0; }
-.history li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid #eef3ee; font-size: 14px; }
-.history li:last-child { border-bottom: 0; }
+
+/* UPDATED: History Grid */
+.history { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+.history li { background: #ffffff; border: 1px solid #e0e9df; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+.history li .pill { margin-top: 10px; align-self: flex-end; }
+
 .pill { flex: none; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; }
 
-footer { max-width: 1180px; margin: auto; padding: 18px 28px; color: #819185; font-size: 12px; }
+footer { max-width: 100%; margin: auto; padding: 18px 28px; color: #819185; font-size: 12px; }
 
 @media (max-width: 800px) {
   .hero { padding: 30px; }
@@ -116,5 +126,4 @@ footer { max-width: 1180px; margin: auto; padding: 18px 28px; color: #819185; fo
   .online { display: none; }
   .hero { padding: 25px 20px; }
   .panel { padding: 20px; }
-  .history li { flex-direction: column; align-items: flex-start; }
 }
