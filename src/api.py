@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 try:
@@ -24,6 +25,8 @@ except ImportError:  # pragma: no cover - script execution support
     from pipeline import run_advisory
     from stt import transcribe_audio_bytes
     from tts import synthesize_speech
+
+FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 app = FastAPI(
     title="Voice-Based Agricultural Advisory",
@@ -57,21 +60,22 @@ def startup() -> None:
     get_vector_store()
 
 
-@app.get("/", response_class=HTMLResponse)
-def home() -> str:
-    return """
-    <html>
-      <body style="font-family: Segoe UI, sans-serif; max-width: 640px; margin: 40px auto;">
-        <h1>Agricultural Advisory API is running</h1>
-        <p>This port is the backend, not the farmer screen.</p>
-        <ul>
-          <li><a href="http://localhost:5173">Open farmer UI (localhost:5173)</a></li>
-          <li><a href="/docs">Open API docs</a></li>
-          <li><a href="/health">Health check</a></li>
-        </ul>
-      </body>
-    </html>
-    """
+if not FRONTEND_DIST.exists():  # local development: UI runs on Vite (port 5173)
+    @app.get("/", response_class=HTMLResponse)
+    def home() -> str:
+        return """
+        <html>
+          <body style="font-family: Segoe UI, sans-serif; max-width: 640px; margin: 40px auto;">
+            <h1>Agricultural Advisory API is running</h1>
+            <p>This port is the backend, not the farmer screen.</p>
+            <ul>
+              <li><a href="http://localhost:5173">Open farmer UI (localhost:5173)</a></li>
+              <li><a href="/docs">Open API docs</a></li>
+              <li><a href="/health">Health check</a></li>
+            </ul>
+          </body>
+        </html>
+        """
 
 
 @app.get("/health")
@@ -123,3 +127,8 @@ def speak(request: SpeakRequest) -> Response:
 @app.get("/history")
 def history(limit: int = 20) -> dict:
     return {"items": list_advisories(limit=limit)}
+
+
+# Deployed container: serve the built React UI from the same address as the API.
+if FRONTEND_DIST.exists():
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIST), html=True), name="frontend")
