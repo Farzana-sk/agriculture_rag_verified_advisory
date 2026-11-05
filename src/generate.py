@@ -42,7 +42,5 @@ Write 4-8 short sentences in English using only the context."""
     )
     message = response.choices[0].message
     text = (getattr(message, "content", None) or "").strip()
-    if not text:
-        text = (getattr(message, "reasoning", None) or "").strip()
     text = unicodedata.normalize("NFKC", text).replace("\u202f", " ")
     return text

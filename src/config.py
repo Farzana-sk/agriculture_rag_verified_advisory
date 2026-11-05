@@ -27,6 +27,7 @@ SKIP_PDF_SUBSTRINGS = (
     "reference",
     "context-aware",
     "collini",
+    "panchangam",
 )
 
 SAFE_REFUSAL = (
